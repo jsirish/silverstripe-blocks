@@ -151,7 +151,7 @@ class Block extends DataObject implements PermissionProvider
             $fields->addFieldToTab('Root.Main', DropdownField::create('ClassName', _t('Block.BlockType', 'Block Type'), $classes)->addExtraClass('block-type'), 'Title');
 
             // BlockArea - display areas field if on page edit controller
-            if (Controller::curr()->class == 'CMSPageEditController') {
+            if (get_class(Controller::curr()) == 'SilverStripe\\CMS\\Controllers\\CMSPageEditController') {
                 $currentPage = Controller::curr()->currentPage();
                 $areas = $self->blockManager->getAreasForPageType($currentPage->ClassName);
                 $fields->addFieldToTab(
@@ -167,7 +167,7 @@ class Block extends DataObject implements PermissionProvider
                 }
 
                 if (BlockManager::config()->get('block_area_preview')) {
-                    $blockAreaField->setRightTitle($currentPage->areasPreviewButton());
+                   $blockAreaField->setRightTitle( DBHTMLText::create()->setValue($currentPage->areasPreviewButton()));
                 }
             }
 
@@ -289,7 +289,8 @@ class Block extends DataObject implements PermissionProvider
     public function canView($member = null)
     {
         if (!$member || !(is_a($member, 'Member')) || is_numeric($member)) {
-            $member = Security::getCurrentUser()->ID;
+			if(Security::getCurrentUser())
+               $member = Security::getCurrentUser()->ID;
         }
 
         // admin override
@@ -443,11 +444,25 @@ class Block extends DataObject implements PermissionProvider
      */
     public function isPublishedIcon()
     {
-        $obj = DBHTMLText::create();
-        if ($this->isPublished()) {
-            $obj->setValue('<img src="' . FRAMEWORK_ADMIN_DIR . '/images/alert-good.gif" />');
-        } else {
-            $obj->setValue('<img src="' . FRAMEWORK_ADMIN_DIR . '/images/alert-bad.gif" />');
+         $obj = DBHTMLText::create();
+
+        if ($this->isOnDraftOnly()) {
+
+            $obj->setValue( '<span class="badge version-status addedtodraft version-status--modified">'._t(__CLASS__ . '.DRAFT', 'Draft') .'</span>');
+        }elseif ($this->isModifiedOnDraft()) {
+
+
+            $obj->setValue( '<span class="badge version-status  version-status--modified">'. _t(__CLASS__ . '.MODIFIED', 'Modified') .'</span>');
+
+        }
+        else {
+
+            if ($this->isPublished()) {
+                $obj->setValue('<span>' . _t('Block.IsPublishedField', 'Published') . '</span>');
+            } else {
+                $obj->setValue('<span class="badge version-status version-status--modified">Not Published</span>');
+                //$obj->setValue('<img src="' . FRAMEWORK_ADMIN_DIR . '/images/alert-bad.gif" />');
+            }
         }
         return $obj;
     }
@@ -492,8 +507,10 @@ class Block extends DataObject implements PermissionProvider
         if ($this->controller) {
             return $this->controller;
         }
-        foreach (array_reverse(ClassInfo::ancestry($this->class)) as $blockClass) {
+        foreach (array_reverse(ClassInfo::ancestry($this)) as $label=> $blockClass) {
+            $blockClass = str_replace('\\Model\\', "\\Controllers\\", $blockClass);
             $controllerClass = "{$blockClass}Controller";
+            
             if (class_exists($controllerClass)) {
                 break;
             }

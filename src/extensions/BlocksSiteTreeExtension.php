@@ -18,7 +18,7 @@ use SilverStripe\View\SSViewer;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\Security\Permission;
 use SilverStripe\Control\Controller;
-use SilverStripeAustralia\GridFieldExtensions\GridFieldOrderableRows;
+use Symbiote\GridFieldExtensions\GridFieldOrderableRows;
 
 /**
  * BlocksSiteTreeExtension.
@@ -36,7 +36,7 @@ class BlocksSiteTreeExtension extends SiteTreeExtension
 		"DisabledBlocks" => Block::class,
 	];
 
-	public static $many_many_extraFields = [
+	private static $many_many_extraFields = [
 		'Blocks' => [
 			'Sort' => 'Int',
 			'BlockArea' => 'Varchar',
@@ -101,7 +101,7 @@ class BlocksSiteTreeExtension extends SiteTreeExtension
 			$gridConfig = GridFieldConfigBlockManager::create(true, true, true, true)
 				->addExisting($this->owner->class)
 				//->addBulkEditing()
-				// ->addComponent(new GridFieldOrderableRows()) // Comment until below TODO is complete.
+				 ->addComponent(new GridFieldOrderableRows()) // Comment until below TODO is complete.
 				;
 
 
